@@ -93,51 +93,51 @@ def main():
         st.write(text)
     else:
         st.warning("Please upload a PDF, DOC, or TXT file or paste text.")
+        return  # Exit early if neither file uploaded nor text pasted
 
     # Word Count
-    if 'text' in locals():
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            word_count = len(text.split())
-            st.markdown(f"**Word Count:** {word_count}")
-        with col2:
-            language = detect_language(text)
-            if language == "en":
-                st.markdown("**Language:** English")
-            else:
-                st.markdown(f"**Language:** {language}")
-
-        # Keyword Extraction
-        keywords = extract_keywords(text)
-        df_keywords = pd.DataFrame({"Keywords": keywords})
-        st.markdown("**Keywords:**")
-        st.write(df_keywords)
-
-        # Named Entity Recognition (NER)
-        entities = ner(text)
-        df_entities = pd.DataFrame(entities, columns=["Entity", "Label"])
-        st.markdown("**Named Entities:**")
-        st.write(df_entities)
-
-        # Extract URLs
-        urls = extract_urls(text)
-        if urls:
-            df_urls = pd.DataFrame({"URLs": urls})
-            st.markdown("**URLs:**")
-            st.write(df_urls)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        word_count = len(text.split())
+        st.markdown(f"**Word Count:** {word_count}")
+    with col2:
+        language = detect_language(text)
+        if language == "en":
+            st.markdown("**Language:** English")
         else:
-            st.markdown("**URLs:**")
-            st.write("No URLs found in the text.")
+            st.markdown(f"**Language:** {language}")
 
-        # Generate Summary
-        if st.button("Summarize"):
-            summary = generate_summary(text)
-            st.markdown("**Summary:**")
-            st.write(summary)
+    # Keyword Extraction
+    keywords = extract_keywords(text)
+    df_keywords = pd.DataFrame({"Keywords": keywords})
+    st.markdown("**Keywords:**")
+    st.write(df_keywords)
 
-            # Word Count of Summary
-            summary_word_count = len(summary.split())
-            st.markdown(f"**Summary Word Count:** {summary_word_count}")
+    # Named Entity Recognition (NER)
+    entities = ner(text)
+    df_entities = pd.DataFrame(entities, columns=["Entity", "Label"])
+    st.markdown("**Named Entities:**")
+    st.write(df_entities)
+
+    # Extract URLs
+    urls = extract_urls(text)
+    if urls:
+        df_urls = pd.DataFrame({"URLs": urls})
+        st.markdown("**URLs:**")
+        st.write(df_urls)
+    else:
+        st.markdown("**URLs:**")
+        st.write("No URLs found in the text.")
+
+    # Generate Summary
+    if st.button("Summarize"):
+        summary = generate_summary(text)
+        st.markdown("**Summary:**")
+        st.write(summary)
+
+        # Word Count of Summary
+        summary_word_count = len(summary.split())
+        st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
 if __name__ == "__main__":
     main()
