@@ -1,3 +1,9 @@
+# Import NLTK and download necessary resources
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Continue with the rest of your imports
 import streamlit as st
 import google.generativeai as genai
 import os
