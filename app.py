@@ -16,7 +16,7 @@ import re
 from docx import Document
 
 # Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') )
+genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
 
 # Initialize the Gemini Pro model
 model = genai.GenerativeModel('gemini-pro')
