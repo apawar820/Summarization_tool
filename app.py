@@ -75,7 +75,7 @@ def extract_urls(text):
 def main():
     st.set_page_config(layout="wide")
 
-    st.title("PDF Summarizer")
+    st.title("PDF, DOCUMENT, TEXT ANALYSIS & SUMMARY GENERATION ")
 
     # Requirements Sidebar
     st.sidebar.header("Requirements")
