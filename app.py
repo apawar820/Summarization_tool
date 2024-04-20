@@ -33,7 +33,16 @@ def generate_summary(text):
 def extract_keywords(text):
     r = Rake()
     r.extract_keywords_from_text(text)
-    return r.get_ranked_phrases()
+    phrases_with_scores = r.get_ranked_phrases_with_scores()
+    keyword_freq = {}
+    for score, phrase in phrases_with_scores:
+        # Removing leading/trailing whitespaces and converting to lowercase for consistency
+        clean_phrase = phrase.strip().lower()
+        if clean_phrase not in keyword_freq:
+            keyword_freq[clean_phrase] = 1
+        else:
+            keyword_freq[clean_phrase] += 1
+    return keyword_freq
 
 # Function to detect language
 def detect_language(text):
@@ -114,8 +123,8 @@ def main():
             st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-    keywords = extract_keywords(text)
-    df_keywords = pd.DataFrame({"Keywords": keywords})
+    keyword_freq = extract_keywords(text)
+    df_keywords = pd.DataFrame({"Keyword": list(keyword_freq.keys()), "Frequency": list(keyword_freq.values())})
     st.markdown("**Keywords:**")
     st.write(df_keywords)
 
@@ -146,4 +155,4 @@ def main():
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
 if __name__ == "__main__":
-    main()                                  
+    main()                              
