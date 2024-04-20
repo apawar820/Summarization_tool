@@ -41,6 +41,7 @@ def generate_summary(text):
         st.error(str(e))  # Display the specific error message
         return None
 
+
 # Function to extract keywords
 def extract_keywords_with_frequency(text):
     r = Rake()
