@@ -83,7 +83,7 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
-
+    
 # Streamlit App
 def main():
     st.set_page_config(layout="wide")
@@ -127,7 +127,7 @@ def main():
             st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-   keyword_scores = extract_keywords_with_frequency(text)
+    keyword_scores = extract_keywords_with_frequency(text)
     df_keywords = pd.DataFrame({"Keyword": keyword_scores.keys(), "Frequency": keyword_scores.values()})
     df_keywords = df_keywords.sort_values(by="Frequency", ascending=False)
     st.markdown("**Keywords:**")
@@ -150,16 +150,15 @@ def main():
         st.write("No URLs found in the text.")
 
     # Generate Summary
-    # Generate Summary
-   if st.button("Summarize"):
-    summary = generate_summary(text)
-    if summary is not None:
-        st.markdown("**Summary:**")
-        st.write(summary)
+    if st.button("Summarize"):
+        summary = generate_summary(text)
+        if summary is not None:
+            st.markdown("**Summary:**")
+            st.write(summary)
 
-        # Word Count of Summary
-        summary_word_count = len(summary.split())
-        st.markdown(f"**Summary Word Count:** {summary_word_count}")
+            # Word Count of Summary
+            summary_word_count = len(summary.split())
+            st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
 if __name__ == "__main__":
     main()
