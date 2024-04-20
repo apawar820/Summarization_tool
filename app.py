@@ -26,14 +26,20 @@ nlp = spacy.load("en_core_web_sm")
 
 # Function to generate a summary
 def generate_summary(text):
-    response = model.generate_content(text)
-    return response.text
+    try:
+        response = model.generate_content(text)
+        return response.text
+    except Exception as e:
+        st.error("An error occurred during summary generation. Please try again.")
+        st.error(str(e))  # Display the specific error message
+        return None
 
 # Function to extract keywords
-def extract_keywords(text):
+def extract_keywords_with_frequency(text):
     r = Rake()
     r.extract_keywords_from_text(text)
-    return r.get_ranked_phrases()
+    keyword_scores = r.get_word_degrees()  # Get keyword scores (frequencies)
+    return keyword_scores
 
 # Function to detect language
 def detect_language(text):
@@ -114,8 +120,9 @@ def main():
             st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-    keywords = extract_keywords(text)
-    df_keywords = pd.DataFrame({"Keywords": keywords})
+   keyword_scores = extract_keywords_with_frequency(text)
+    df_keywords = pd.DataFrame({"Keyword": keyword_scores.keys(), "Frequency": keyword_scores.values()})
+    df_keywords = df_keywords.sort_values(by="Frequency", ascending=False)
     st.markdown("**Keywords:**")
     st.write(df_keywords)
 
@@ -136,8 +143,10 @@ def main():
         st.write("No URLs found in the text.")
 
     # Generate Summary
-    if st.button("Summarize"):
-        summary = generate_summary(text)
+    # Generate Summary
+   if st.button("Summarize"):
+    summary = generate_summary(text)
+    if summary is not None:
         st.markdown("**Summary:**")
         st.write(summary)
 
