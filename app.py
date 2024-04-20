@@ -28,11 +28,16 @@ nlp = spacy.load("en_core_web_sm")
 def generate_summary(text):
     try:
         response = model.generate_content(text)
-        return response.text
+        if response.parts:
+            return response.text
+        else:
+            st.error("No text found in the response. Please try again.")
+            return None
     except Exception as e:
         st.error("An error occurred during summary generation. Please try again.")
         st.error(str(e))  # Display the specific error message
         return None
+
 
 # Function to extract keywords
 def extract_keywords_with_frequency(text):
