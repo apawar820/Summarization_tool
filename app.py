@@ -26,28 +26,14 @@ nlp = spacy.load("en_core_web_sm")
 
 # Function to generate a summary
 def generate_summary(text):
-    try:
-        response = model.generate_content(text)
-        if response.safety_ratings:
-            st.error("The response was blocked or contained invalid content. Please try again with different input.")
-            return None
-        elif response.parts:
-            return response.text
-        else:
-            st.error("No text found in the response. Please try again.")
-            return None
-    except Exception as e:
-        st.error("An error occurred during summary generation. Please try again.")
-        st.error(str(e))  # Display the specific error message
-        return None
-
+    response = model.generate_content(text)
+    return response.text
 
 # Function to extract keywords
-def extract_keywords_with_frequency(text):
+def extract_keywords(text):
     r = Rake()
     r.extract_keywords_from_text(text)
-    keyword_scores = r.get_word_degrees()  # Get keyword scores (frequencies)
-    return keyword_scores
+    return r.get_ranked_phrases()
 
 # Function to detect language
 def detect_language(text):
@@ -84,7 +70,7 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
-    
+
 # Streamlit App
 def main():
     st.set_page_config(layout="wide")
@@ -128,9 +114,8 @@ def main():
             st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-    keyword_scores = extract_keywords_with_frequency(text)
-    df_keywords = pd.DataFrame({"Keyword": keyword_scores.keys(), "Frequency": keyword_scores.values()})
-    df_keywords = df_keywords.sort_values(by="Frequency", ascending=False)
+    keywords = extract_keywords(text)
+    df_keywords = pd.DataFrame({"Keywords": keywords})
     st.markdown("**Keywords:**")
     st.write(df_keywords)
 
@@ -153,13 +138,12 @@ def main():
     # Generate Summary
     if st.button("Summarize"):
         summary = generate_summary(text)
-        if summary is not None:
-            st.markdown("**Summary:**")
-            st.write(summary)
+        st.markdown("**Summary:**")
+        st.write(summary)
 
-            # Word Count of Summary
-            summary_word_count = len(summary.split())
-            st.markdown(f"**Summary Word Count:** {summary_word_count}")
+        # Word Count of Summary
+        summary_word_count = len(summary.split())
+        st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
 if __name__ == "__main__":
-    main()
+    main()                                  
