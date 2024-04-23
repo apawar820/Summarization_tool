@@ -12,9 +12,9 @@ import re
 from docx import Document
 
 # Connect to MongoDB Atlas
-client = MongoClient("<mongodb+srv://akhileshpawar820:<Akhi8011*>@summarizer.nqpip6t.mongodb.net/>")
-db = client["<summarizer>"]
-collection = db["<Project 0>"]
+client = MongoClient("mongodb+srv://akhileshpawar820:<Akhi8011*>@summarizer.nqpip6t.mongodb.net/")
+db = client["summarizer"]
+collection = db["Project 0"]
 
 # Configure the API key
 genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "YOUR_API_KEY_HERE")
