@@ -1,9 +1,5 @@
-# Import NLTK and download necessary resources
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-
-# Continue with the rest of your imports
+import pymongo
+from pymongo import MongoClient
 import streamlit as st
 import google.generativeai as genai
 import os
@@ -15,8 +11,13 @@ import pandas as pd
 import re
 from docx import Document
 
+# Connect to MongoDB Atlas
+client = MongoClient("<mongodb+srv://akhileshpawar820:<Akhi8011*>@summarizer.nqpip6t.mongodb.net/>")
+db = client["<summarizer>"]
+collection = db["<Project 0>"]
+
 # Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
+genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "YOUR_API_KEY_HERE")
 
 # Initialize the Gemini Pro model
 model = genai.GenerativeModel('gemini-pro')
@@ -24,10 +25,12 @@ model = genai.GenerativeModel('gemini-pro')
 # Load English language model for NER
 nlp = spacy.load("en_core_web_sm")
 
+
 # Function to generate a summary
 def generate_summary(text):
     response = model.generate_content(text)
     return response.text
+
 
 # Function to extract keywords
 def extract_keywords(text):
@@ -44,9 +47,11 @@ def extract_keywords(text):
             keyword_freq[clean_phrase] += 1
     return keyword_freq
 
+
 # Function to detect language
 def detect_language(text):
     return detect(text)
+
 
 # Function to perform named entity recognition (NER)
 def ner(text):
@@ -55,6 +60,7 @@ def ner(text):
     for ent in doc.ents:
         entities.append((ent.text, ent.label_))
     return entities
+
 
 # Function to read text from PDF
 def read_pdf(uploaded_file):
@@ -65,6 +71,7 @@ def read_pdf(uploaded_file):
         text += page.extract_text()
     return text
 
+
 # Function to read text from .doc and .docx files
 def read_docx(uploaded_file):
     doc = Document(uploaded_file)
@@ -73,12 +80,14 @@ def read_docx(uploaded_file):
         text += paragraph.text + "\n"
     return text
 
+
 # Function to extract URLs from text
 def extract_urls(text):
     # Regular expression pattern for finding URLs
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
+
 
 # Streamlit App
 def main():
@@ -154,5 +163,16 @@ def main():
         summary_word_count = len(summary.split())
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
+        # Insert data into MongoDB
+        user_name = st.text_input("Enter Your Name")
+        if user_name:
+            data = {"user_name": user_name, "file_name": uploaded_file.name if uploaded_file else "Pasted Text",
+                    "summary": summary}
+            collection.insert_one(data)
+            st.success("Summary data successfully saved to MongoDB.")
+        else:
+            st.warning("Please enter your name to save the summary data.")
+
+
 if __name__ == "__main__":
-    main()                              
+    main()
