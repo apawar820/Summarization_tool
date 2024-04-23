@@ -17,7 +17,7 @@ db = client["summarizer"]
 collection = db["Project 0"]
 
 # Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "YOUR_API_KEY_HERE")
+genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
 
 # Initialize the Gemini Pro model
 model = genai.GenerativeModel('gemini-pro')
