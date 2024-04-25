@@ -1,4 +1,3 @@
-# Import required libraries
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -13,7 +12,7 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
-from flask import request
+import uuid  # Import UUID module
 
 # Initialize MongoDB client
 def connect_to_mongodb():
@@ -115,9 +114,11 @@ def extract_urls(text):
     urls = re.findall(url_pattern, text)
     return urls
 
-# Function to get IP address
-def get_user_ip():
-    return request.headers.get('X-Forwarded-For', request.remote_addr)
+# Function to generate a unique ID based on user's name
+def generate_unique_id(name):
+    # Concatenate user's name with a unique UUID
+    unique_id = f"{name}_{uuid.uuid4().hex}"
+    return unique_id
 
 # Streamlit App
 def main():
@@ -129,6 +130,7 @@ def main():
     st.sidebar.header("Requirements")
     uploaded_file = st.sidebar.file_uploader("Upload PDF, DOC, or TXT", type=["pdf", "doc", "docx", "txt"])
     pasted_text = st.sidebar.text_area("Paste Text")
+    user_name = st.sidebar.text_input("Enter Your Name", "")
 
     if uploaded_file is not None:
         file_extension = uploaded_file.name.split(".")[-1].lower()
@@ -193,11 +195,13 @@ def main():
         summary_word_count = len(summary.split())
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
-        # Write to MongoDB with IP address
+        # Generate Unique ID
+        unique_id = generate_unique_id(user_name)
+
+        # Write to MongoDB
         try:
             collection = db["summaries"]
-            user_ip = get_user_ip()
-            data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count, "ip_address": user_ip}
+            data = {"unique_id": unique_id, "user_name": user_name, "file_name": uploaded_file.name, "summary": summary, "summary_word_count": summary_word_count}
             collection.insert_one(data)
             st.success("Summary data written to MongoDB successfully!")
         except pymongo.errors.PyMongoError as e:
