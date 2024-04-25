@@ -20,9 +20,14 @@ password = "Akhi8011*"
 cluster_name = "cluster"
 database_name = "cluster"  # Replace with your actual database name
 
-client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
+# Construct MongoDB URI
+uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+
+# Initialize MongoDB client
+client = pymongo.MongoClient(uri)
+
 # Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "Your_GenAI_API_Key")
+genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
 
 # Initialize the Gemini Pro model
 model = genai.GenerativeModel('gemini-pro')
