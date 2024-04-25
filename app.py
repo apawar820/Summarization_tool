@@ -20,7 +20,7 @@ def connect_to_mongodb():
 # Function to insert data into MongoDB
 def insert_data(data):
     db = connect_to_mongodb()
-    if db:
+    if db is not None:  # Compare with None directly
         example_collection = db['example_collection']
         example_collection.insert_one(data)
         st.success("Data inserted successfully into MongoDB Atlas.")
@@ -44,7 +44,7 @@ def main():
     # Display data from MongoDB
     st.header("Data from MongoDB Atlas")
     db = connect_to_mongodb()
-    if db:
+    if db is not None:  # Compare with None directly
         example_collection = db['example_collection']
         data = example_collection.find()
         for item in data:
