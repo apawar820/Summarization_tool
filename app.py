@@ -3,20 +3,17 @@ import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 
-# Continue with the rest of your imports
 import streamlit as st
-import google.generativeai as genai
 import os
+import pymongo
 from PyPDF2 import PdfReader
+from docx import Document
 from langdetect import detect
 from rake_nltk import Rake
 import spacy
 import pandas as pd
 import re
-from docx import Document
-
-# Add MongoDB related imports
-import pymongo
+import google.generativeai as genai
 
 # Connect to MongoDB Atlas
 def connect_to_mongodb():
@@ -26,6 +23,7 @@ def connect_to_mongodb():
         password = "Akhi8011*"
         cluster_name = "cluster"
         database_name = "cluster"
+
         client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
         db = client[database_name]
         return db
@@ -33,7 +31,84 @@ def connect_to_mongodb():
         st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
         st.stop()
 
-# Main function to run the Streamlit app
+# Function to insert data into MongoDB
+def insert_data(name, file_name, file_type, file_size, summary):
+    db = connect_to_mongodb()
+    if db is not None:
+        analysis_collection = db['analysis']
+        data = {
+            "name": name,
+            "file_name": file_name,
+            "file_type": file_type,
+            "file_size": file_size,
+            "summary": summary
+        }
+        analysis_collection.insert_one(data)
+        st.success("Data inserted successfully into MongoDB Atlas.")
+
+# Initialize the Gemini Pro model
+model = genai.GenerativeModel('gemini-pro')
+
+# Load English language model for NER
+nlp = spacy.load("en_core_web_sm")
+
+# Function to generate a summary
+def generate_summary(text):
+    response = model.generate_content(text)
+    return response.text
+
+# Function to extract keywords
+def extract_keywords(text):
+    r = Rake()
+    r.extract_keywords_from_text(text)
+    phrases_with_scores = r.get_ranked_phrases_with_scores()
+    keyword_freq = {}
+    for score, phrase in phrases_with_scores:
+        # Removing leading/trailing whitespaces and converting to lowercase for consistency
+        clean_phrase = phrase.strip().lower()
+        if clean_phrase not in keyword_freq:
+            keyword_freq[clean_phrase] = 1
+        else:
+            keyword_freq[clean_phrase] += 1
+    return keyword_freq
+
+# Function to detect language
+def detect_language(text):
+    return detect(text)
+
+# Function to perform named entity recognition (NER)
+def ner(text):
+    doc = nlp(text)
+    entities = []
+    for ent in doc.ents:
+        entities.append((ent.text, ent.label_))
+    return entities
+
+# Function to read text from PDF
+def read_pdf(uploaded_file):
+    pdf_reader = PdfReader(uploaded_file)
+    text = ""
+    # Read each page of the PDF
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# Function to read text from .doc and .docx files
+def read_docx(uploaded_file):
+    doc = Document(uploaded_file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+# Function to extract URLs from text
+def extract_urls(text):
+    # Regular expression pattern for finding URLs
+    url_pattern = r'https?://\S+'
+    urls = re.findall(url_pattern, text)
+    return urls
+
+# Streamlit App
 def main():
     st.set_page_config(layout="wide")
 
@@ -41,6 +116,7 @@ def main():
 
     # Requirements Sidebar
     st.sidebar.header("Requirements")
+    name = st.sidebar.text_input("Enter Your Name")
     uploaded_file = st.sidebar.file_uploader("Upload PDF, DOC, or TXT", type=["pdf", "doc", "docx", "txt"])
     pasted_text = st.sidebar.text_area("Paste Text")
 
@@ -107,16 +183,8 @@ def main():
         summary_word_count = len(summary.split())
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
-        # Inserting analysis results into MongoDB
-        db = connect_to_mongodb()
-        if db is not None:
-            # Insert analysis results into the database
-            db.analysis_results.insert_one({
-                "uploaded_file": uploaded_file.name if uploaded_file else "Pasted_Text",
-                "text_size": len(text) if uploaded_file is None else 0,
-                "summary": summary
-            })
-            st.success("Analysis results inserted into MongoDB Atlas.")
+        # Insert analysis data into MongoDB
+        insert_data(name, uploaded_file.name if uploaded_file else "Pasted Text", file_extension if uploaded_file else "Pasted Text", word_count if uploaded_file else len(pasted_text.split()), summary)
 
 if __name__ == "__main__":
     main()
