@@ -84,7 +84,7 @@ from pymongo.errors import ServerSelectionTimeoutError
 def store_data(ip_address, unique_id, filename, text_size, summary):
     try:
         db = client["cluster"]
-        collection = db["cluster"]
+        collection = db["summary"]
         data = {
             "ip_address": ip_address,
             "unique_id": unique_id,
