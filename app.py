@@ -13,25 +13,17 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
-import pymongo
 from pymongo import MongoClient
 
 # Connect to MongoDB Atlas
-client = MongoClient("your_connection_uri")
-db = client["your_database_name"]
-collection = db["your_collection_name"]
-
-# Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
-
-# Initialize the Gemini Pro model
-model = genai.GenerativeModel('gemini-pro')
-
-# Load English language model for NER
-nlp = spacy.load("en_core_web_sm")
+uri = "mongodb+srv://akhileshpawar820:Akhi8011*@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
+client = MongoClient(uri)
 
 # Function to generate a summary
 def generate_summary(text):
+    # Initialize the Gemini Pro model
+    genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
+    model = genai.GenerativeModel('gemini-pro')
     response = model.generate_content(text)
     return response.text
 
@@ -56,6 +48,7 @@ def detect_language(text):
 
 # Function to perform named entity recognition (NER)
 def ner(text):
+    nlp = spacy.load("en_core_web_sm")
     doc = nlp(text)
     entities = []
     for ent in doc.ents:
@@ -88,6 +81,8 @@ def extract_urls(text):
 
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
+    db = client["your_database_name"]
+    collection = db["your_collection_name"]
     data = {
         "ip_address": ip_address,
         "unique_id": unique_id,
