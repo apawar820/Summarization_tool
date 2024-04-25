@@ -5,7 +5,7 @@ import pymongo
 def connect_to_mongodb():
     # Replace these values with your MongoDB Atlas connection string
     username = "akhileshpawar820"
-    password = "Akhi8011"
+    password = "Akhi8011*"
     cluster_name = "Cluster"
     database_name = "Cluster"
 
