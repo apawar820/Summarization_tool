@@ -45,8 +45,8 @@ def connect_to_mongodb():
 db = connect_to_mongodb()
 
 # Check if GEN AI API Key is set
-gen_ai_api_key = os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw"
-if gen_ai_api_key == "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw":
+gen_ai_api_key = os.getenv('AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw"
+if gen_ai_api_key == "YOUR_API_KEY_HERE":
     st.error("Please set your GEN AI API Key.")
     st.stop()
 
