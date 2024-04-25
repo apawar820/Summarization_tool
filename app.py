@@ -16,7 +16,7 @@ from docx import Document
 from pymongo import MongoClient
 
 # Connect to MongoDB Atlas
-uri = "mongodb+srv://akhileshpawar820:Akhi8011*@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
+uri = "mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
 client = MongoClient(uri)
 
 # Function to generate a summary
@@ -83,7 +83,7 @@ from pymongo.errors import ServerSelectionTimeoutError
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
     try:
-        db = client["cluster"]
+        db = client["Cluster"]
         collection = db["summary"]
         data = {
             "ip_address": ip_address,
