@@ -16,19 +16,37 @@ def connect_to_mongodb():
     except Exception as e:
         st.error(f"Error connecting to MongoDB Atlas: {e}")
 
+# Function to insert data into MongoDB
+def insert_data(data):
+    db = connect_to_mongodb()
+    if db:
+        example_collection = db['example_collection']
+        example_collection.insert_one(data)
+        st.success("Data inserted successfully into MongoDB Atlas.")
+    else:
+        st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
+
 # Main function to run the Streamlit app
 def main():
     # Title of the web app
     st.title("MongoDB Atlas Streamlit Web App")
 
-    # Connect to MongoDB Atlas
-    db = connect_to_mongodb()
+    # Input form to add data
+    st.header("Add Data to MongoDB Atlas")
+    name = st.text_input("Enter Name")
+    age = st.number_input("Enter Age")
+    email = st.text_input("Enter Email")
+
+    # Button to submit data
+    if st.button("Submit"):
+        data = {"name": name, "age": age, "email": email}
+        insert_data(data)
 
     # Display data from MongoDB
+    st.header("Data from MongoDB Atlas")
+    db = connect_to_mongodb()
     if db:
-        # Example: Display a collection named 'example_collection'
         example_collection = db['example_collection']
-        st.write("Data from MongoDB Atlas:")
         data = example_collection.find()
         for item in data:
             st.write(item)
