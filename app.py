@@ -81,8 +81,8 @@ def extract_urls(text):
 
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
-    db = client["your_database_name"]
-    collection = db["your_collection_name"]
+    db = client["cluster"]
+    collection = db["summary"]
     data = {
         "ip_address": ip_address,
         "unique_id": unique_id,
