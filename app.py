@@ -1,9 +1,12 @@
-import streamlit as st
-import pymongo
+# Import NLTK and download necessary resources
 import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from google.generativeai import generativeai
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Continue with the rest of your imports
+import streamlit as st
+import google.generativeai as genai
+import os
 from PyPDF2 import PdfReader
 from langdetect import detect
 from rake_nltk import Rake
@@ -11,6 +14,9 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
+
+# Add MongoDB related imports
+import pymongo
 
 # Connect to MongoDB Atlas
 def connect_to_mongodb():
@@ -27,76 +33,7 @@ def connect_to_mongodb():
         st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
         st.stop()
 
-# Initialize NLTK resources
-nltk.download('punkt')
-nltk.download('stopwords')
-
-# Configure the API key
-generativeai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
-
-# Initialize the Gemini Pro model
-model = generativeai.GenerativeModel('gemini-pro')
-
-# Load English language model for NER
-nlp = spacy.load("en_core_web_sm")
-
-# Function to generate a summary
-def generate_summary(text):
-    response = model.generate_content(text)
-    return response.text
-
-# Function to extract keywords
-def extract_keywords(text):
-    r = Rake()
-    r.extract_keywords_from_text(text)
-    phrases_with_scores = r.get_ranked_phrases_with_scores()
-    keyword_freq = {}
-    for score, phrase in phrases_with_scores:
-        # Removing leading/trailing whitespaces and converting to lowercase for consistency
-        clean_phrase = phrase.strip().lower()
-        if clean_phrase not in keyword_freq:
-            keyword_freq[clean_phrase] = 1
-        else:
-            keyword_freq[clean_phrase] += 1
-    return keyword_freq
-
-# Function to detect language
-def detect_language(text):
-    return detect(text)
-
-# Function to perform named entity recognition (NER)
-def ner(text):
-    doc = nlp(text)
-    entities = []
-    for ent in doc.ents:
-        entities.append((ent.text, ent.label_))
-    return entities
-
-# Function to read text from PDF
-def read_pdf(uploaded_file):
-    pdf_reader = PdfReader(uploaded_file)
-    text = ""
-    # Read each page of the PDF
-    for page in pdf_reader.pages:
-        text += page.extract_text()
-    return text
-
-# Function to read text from .doc and .docx files
-def read_docx(uploaded_file):
-    doc = Document(uploaded_file)
-    text = ""
-    for paragraph in doc.paragraphs:
-        text += paragraph.text + "\n"
-    return text
-
-# Function to extract URLs from text
-def extract_urls(text):
-    # Regular expression pattern for finding URLs
-    url_pattern = r'https?://\S+'
-    urls = re.findall(url_pattern, text)
-    return urls
-
-# Streamlit App
+# Main function to run the Streamlit app
 def main():
     st.set_page_config(layout="wide")
 
@@ -173,13 +110,9 @@ def main():
         # Inserting analysis results into MongoDB
         db = connect_to_mongodb()
         if db is not None:
-            # Get user IP address
-            user_ip = st.request.headers.get('X-Forwarded-For', '').split(',')[0]
-
             # Insert analysis results into the database
             db.analysis_results.insert_one({
-                "user_id": user_ip,  # You can replace this with a unique user identifier if available
-                "file_name": uploaded_file.name if uploaded_file else "Pasted_Text",
+                "uploaded_file": uploaded_file.name if uploaded_file else "Pasted_Text",
                 "text_size": len(text) if uploaded_file is None else 0,
                 "summary": summary
             })
