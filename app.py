@@ -17,19 +17,29 @@ from docx import Document
 # Initialize MongoDB client
 def connect_to_mongodb():
     try:
-        # Replace these values with your MongoDB Atlas connection string
+        # Replace these values with your MongoDB Atlas connection details
         username = "akhileshpawar820"
         password = "Akhi8011*"
         cluster_name = "cluster"
         database_name = "cluster"
 
+        # Construct the MongoDB URI
         uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+
+        # Attempt to connect to MongoDB
         client = pymongo.MongoClient(uri)
         db = client[database_name]
         return db
-    except pymongo.errors.ConnectionFailure:
-        st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
+    except pymongo.errors.ConfigurationError as e:
+        st.error("MongoDB Configuration Error: Please double-check your MongoDB Atlas connection settings.")
         st.stop()
+    except pymongo.errors.ConnectionFailure as e:
+        st.error("Failed to connect to MongoDB Atlas. Please ensure that your MongoDB cluster is accessible.")
+        st.stop()
+    except Exception as e:
+        st.error(f"An error occurred while connecting to MongoDB Atlas: {str(e)}")
+        st.stop()
+
 
 # Connect to MongoDB
 db = connect_to_mongodb()
