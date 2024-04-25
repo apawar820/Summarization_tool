@@ -1,45 +1,106 @@
+# Import required libraries
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
 import streamlit as st
-import os
 import pymongo
+import google.generativeai as genai
+import os
 from PyPDF2 import PdfReader
-from docx import Document
 from langdetect import detect
 from rake_nltk import Rake
 import spacy
 import pandas as pd
 import re
+from docx import Document
 
-# Connect to MongoDB Atlas
-def connect_to_mongodb():
-    try:
-        # Replace these values with your MongoDB Atlas connection string
-        username = "akhileshpawar820"
-        password = "Akhi8011*"
-        cluster_name = "cluster"
-        database_name = "cluster"
+# Initialize MongoDB client
+username = "akhileshpawar820"
+password = "Akhi8011*"
+cluster_name = "cluster"
+database_name = "cluster"  # Replace with your actual database name
 
-        client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
-        db = client[database_name]
-        return db
-    except pymongo.errors.OperationFailure as e:
-        st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
-        st.stop()
+ client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
+# Configure the API key
+genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "Your_GenAI_API_Key")
 
-# Function to insert data into MongoDB
-def insert_data(data):
-    db = connect_to_mongodb()
-    if db is not None:
-        example_collection = db['example_collection']
-        example_collection.insert_one(data)
-        st.success("Data inserted successfully into MongoDB Atlas.")
+# Initialize the Gemini Pro model
+model = genai.GenerativeModel('gemini-pro')
 
-# Initialize Streamlit app
+# Load English language model for NER
+nlp = spacy.load("en_core_web_sm")
+
+# Function to generate a summary
+def generate_summary(text):
+    response = model.generate_content(text)
+    return response.text
+
+# Function to extract keywords
+def extract_keywords(text):
+    r = Rake()
+    r.extract_keywords_from_text(text)
+    phrases_with_scores = r.get_ranked_phrases_with_scores()
+    keyword_freq = {}
+    for score, phrase in phrases_with_scores:
+        # Removing leading/trailing whitespaces and converting to lowercase for consistency
+        clean_phrase = phrase.strip().lower()
+        if clean_phrase not in keyword_freq:
+            keyword_freq[clean_phrase] = 1
+        else:
+            keyword_freq[clean_phrase] += 1
+    return keyword_freq
+
+# Function to detect language
+def detect_language(text):
+    return detect(text)
+
+# Function to perform named entity recognition (NER)
+def ner(text):
+    doc = nlp(text)
+    entities = []
+    for ent in doc.ents:
+        entities.append((ent.text, ent.label_))
+    return entities
+
+# Function to read text from PDF
+def read_pdf(uploaded_file):
+    pdf_reader = PdfReader(uploaded_file)
+    text = ""
+    # Read each page of the PDF
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# Function to read text from .doc and .docx files
+def read_docx(uploaded_file):
+    doc = Document(uploaded_file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+# Function to extract URLs from text
+def extract_urls(text):
+    # Regular expression pattern for finding URLs
+    url_pattern = r'https?://\S+'
+    urls = re.findall(url_pattern, text)
+    return urls
+
+# Function to write data to MongoDB
+def write_to_mongodb(file_name, summary_word_count):
+    db = client[database_name]
+    collection = db["summaries"]
+    data = {"file_name": file_name, "summary_word_count": summary_word_count}
+    collection.insert_one(data)
+
+# Streamlit App
 def main():
+    st.set_page_config(layout="wide")
+
     st.title("PDF, DOCUMENT, TEXT ANALYSIS & SUMMARY GENERATION ")
 
     # Requirements Sidebar
     st.sidebar.header("Requirements")
-    name = st.sidebar.text_input("Enter Your Name")
     uploaded_file = st.sidebar.file_uploader("Upload PDF, DOC, or TXT", type=["pdf", "doc", "docx", "txt"])
     pasted_text = st.sidebar.text_area("Paste Text")
 
@@ -63,29 +124,38 @@ def main():
         return  # Exit early if neither file uploaded nor text pasted
 
     # Word Count
-    word_count = len(text.split())
-    st.markdown(f"**Word Count:** {word_count}")
-
-    # Language Detection
-    language = detect(text)
-    if language == "en":
-        st.markdown("**Language:** English")
-    else:
-        st.markdown(f"**Language:** {language}")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        word_count = len(text.split())
+        st.markdown(f"**Word Count:** {word_count}")
+    with col2:
+        language = detect_language(text)
+        if language == "en":
+            st.markdown("**Language:** English")
+        else:
+            st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-    r = Rake()
-    r.extract_keywords_from_text(text)
-    keywords = r.get_ranked_phrases()
+    keyword_freq = extract_keywords(text)
+    df_keywords = pd.DataFrame({"Keyword": list(keyword_freq.keys()), "Frequency": list(keyword_freq.values())})
     st.markdown("**Keywords:**")
-    st.write(keywords)
+    st.write(df_keywords)
 
     # Named Entity Recognition (NER)
-    nlp = spacy.load("en_core_web_sm")
-    doc = nlp(text)
-    entities = [(ent.text, ent.label_) for ent in doc.ents]
+    entities = ner(text)
+    df_entities = pd.DataFrame(entities, columns=["Entity", "Label"])
     st.markdown("**Named Entities:**")
-    st.write(entities)
+    st.write(df_entities)
+
+    # Extract URLs
+    urls = extract_urls(text)
+    if urls:
+        df_urls = pd.DataFrame({"URLs": urls})
+        st.markdown("**URLs:**")
+        st.write(df_urls)
+    else:
+        st.markdown("**URLs:**")
+        st.write("No URLs found in the text.")
 
     # Generate Summary
     if st.button("Summarize"):
@@ -93,36 +163,12 @@ def main():
         st.markdown("**Summary:**")
         st.write(summary)
 
-        # Insert analysis data into MongoDB
-        insert_data({
-            "name": name,
-            "file_name": uploaded_file.name if uploaded_file else "Pasted Text",
-            "file_type": file_extension if uploaded_file else "Pasted Text",
-            "word_count": word_count,
-            "summary": summary
-        })
+        # Word Count of Summary
+        summary_word_count = len(summary.split())
+        st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
-# Function to generate a summary
-def generate_summary(text):
-    # Dummy summary generation for demonstration purposes
-    return "This is a summary of the input text."
-
-# Function to read text from PDF
-def read_pdf(uploaded_file):
-    with open(uploaded_file.name, "rb") as f:
-        pdf_reader = PdfReader(f)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text()
-    return text
-
-# Function to read text from .doc and .docx files
-def read_docx(uploaded_file):
-    doc = Document(uploaded_file)
-    text = ""
-    for paragraph in doc.paragraphs:
-        text += paragraph.text + "\n"
-    return text
+        # Write to MongoDB
+        write_to_mongodb(uploaded_file.name, summary_word_count)
 
 if __name__ == "__main__":
     main()
