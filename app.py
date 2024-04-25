@@ -83,8 +83,8 @@ from pymongo.errors import ServerSelectionTimeoutError
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
     try:
-        db = client["your_database_name"]
-        collection = db["your_collection_name"]
+        db = client["cluster"]
+        collection = db["cluster"]
         data = {
             "ip_address": ip_address,
             "unique_id": unique_id,
