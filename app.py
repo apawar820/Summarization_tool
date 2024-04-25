@@ -23,17 +23,15 @@ def connect_to_mongodb():
         cluster_name = "cluster"
         database_name = "cluster"
 
-        uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+        uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.mongodb.net/cluster?retryWrites=true&w=majority&appName=cluster"
         client = pymongo.MongoClient(uri)
         db = client[database_name]
         return db
-    except pymongo.errors.ConfigurationError as e:
+    except pymongo.errors.ConnectionFailure:
         st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
         st.stop()
-    except Exception as e:
-        st.error("An error occurred while connecting to MongoDB Atlas.")
-        st.stop()
 
+# Connect to MongoDB
 db = connect_to_mongodb()
 
 # Configure the API key
@@ -181,7 +179,7 @@ def main():
             data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count}
             collection.insert_one(data)
             st.success("Summary data written to MongoDB successfully!")
-        except Exception as e:
+        except pymongo.errors.PyMongoError as e:
             st.error("Failed to write summary data to MongoDB.")
             st.error(str(e))
 
