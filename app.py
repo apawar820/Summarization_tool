@@ -7,10 +7,10 @@ def connect_to_mongodb():
         # Replace these values with your MongoDB Atlas connection string
         username = "akhileshpawar820"
         password = "Akhi8011*"
-        cluster_name = "Cluster"
-        database_name = "Cluster"
+        cluster_name = "cluster"
+        database_name = "cluster"
 
-        client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster")
+        client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
         db = client[database_name]
         return db
     except pymongo.errors.OperationFailure as e:
