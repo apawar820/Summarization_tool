@@ -7,7 +7,7 @@ def connect_to_mongodb():
     username = "akhileshpawar820"
     password = "Akhi8011*"
     cluster_name = "Cluster"
-    database_name = "Cluster"
+    database_name = "summary"
 
     try:
         client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster")
