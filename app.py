@@ -13,6 +13,7 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
+from flask import request
 
 # Initialize MongoDB client
 def connect_to_mongodb():
@@ -39,7 +40,6 @@ def connect_to_mongodb():
     except Exception as e:
         st.error(f"An error occurred while connecting to MongoDB Atlas: {str(e)}")
         st.stop()
-
 
 # Connect to MongoDB
 db = connect_to_mongodb()
@@ -115,6 +115,10 @@ def extract_urls(text):
     urls = re.findall(url_pattern, text)
     return urls
 
+# Function to get IP address
+def get_user_ip():
+    return request.headers.get('X-Forwarded-For', request.remote_addr)
+
 # Streamlit App
 def main():
     st.set_page_config(layout="wide")
@@ -189,10 +193,11 @@ def main():
         summary_word_count = len(summary.split())
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
-        # Write to MongoDB
+        # Write to MongoDB with IP address
         try:
             collection = db["summaries"]
-            data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count}
+            user_ip = get_user_ip()
+            data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count, "ip_address": user_ip}
             collection.insert_one(data)
             st.success("Summary data written to MongoDB successfully!")
         except pymongo.errors.PyMongoError as e:
