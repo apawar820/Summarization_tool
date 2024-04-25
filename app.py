@@ -27,8 +27,11 @@ def connect_to_mongodb():
         client = pymongo.MongoClient(uri)
         db = client[database_name]
         return db
-    except pymongo.errors.OperationFailure as e:
+    except pymongo.errors.ConfigurationError as e:
         st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
+        st.stop()
+    except Exception as e:
+        st.error("An error occurred while connecting to MongoDB Atlas.")
         st.stop()
 
 db = connect_to_mongodb()
