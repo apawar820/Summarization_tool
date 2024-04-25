@@ -1,3 +1,8 @@
+# Import necessary libraries
+import nltk
+nltk.download('punkt')
+nltk.download('stopwords')
+
 import streamlit as st
 import os
 from pymongo import MongoClient
@@ -9,6 +14,7 @@ import pandas as pd
 import re
 from docx import Document
 from pymongo.errors import ServerSelectionTimeoutError
+import google.generativeai as genai  # Add this line to import genai
 
 # Connect to MongoDB Atlas
 uri = "mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
@@ -91,7 +97,7 @@ def store_data(ip_address, unique_id, filename, text_size, summary):
         }
         collection.insert_one(data)
     except ServerSelectionTimeoutError as e:
-        st.error("Failed to store data in MongoDB Atlas.")
+        st.error("Failed to connect to MongoDB Atlas. Please check your network connection and MongoDB URI.")
 
 # Streamlit App
 def main():
