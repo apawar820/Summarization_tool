@@ -81,8 +81,8 @@ def extract_urls(text):
 
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
-    db = client["cluster"]
-    collection = db["summary"]
+    db = client["your_database_name"]
+    collection = db["your_collection_name"]
     data = {
         "ip_address": ip_address,
         "unique_id": unique_id,
@@ -159,14 +159,9 @@ def main():
     # Generate Summary
     if st.button("Summarize"):
         summary = generate_summary(text)
-        # Get user IP address
-        ip_address = st.experimental_get_query_params().get("ip")[0]
-
-        # Generate unique ID based on IP address
-        unique_id = hash(ip_address)
 
         # Store data in MongoDB
-        store_data(ip_address, unique_id, uploaded_file.name if uploaded_file else "Pasted Text", len(text), summary)
+        store_data(None, None, uploaded_file.name if uploaded_file else "Pasted Text", len(text), summary)
         
         st.markdown("**Summary:**")
         st.write(summary)
