@@ -1,9 +1,10 @@
-# Importing necessary libraries
+# Import required libraries
 import nltk
-# Importing NLTK and download necessary resources
 nltk.download('punkt')
 nltk.download('stopwords')
 import streamlit as st
+import pymongo
+import google.generativeai as genai
 import os
 from PyPDF2 import PdfReader
 from langdetect import detect
@@ -12,11 +13,35 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
-import pymongo
-from datetime import datetime
+
+# Initialize MongoDB client
+def connect_to_mongodb():
+    try:
+        # Replace these values with your MongoDB Atlas connection string
+        username = "akhileshpawar820"
+        password = "Akhi8011*"
+        cluster_name = "cluster"
+        database_name = "cluster"
+
+        uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+        client = pymongo.MongoClient(uri)
+        db = client[database_name]
+        return db
+    except pymongo.errors.ConnectionFailure:
+        st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
+        st.stop()
+
+# Connect to MongoDB
+db = connect_to_mongodb()
+
+# Check if GEN AI API Key is set
+gen_ai_api_key = os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw"
+if gen_ai_api_key == "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw":
+    st.error("Please set your GEN AI API Key.")
+    st.stop()
 
 # Configure the API key
-genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "YOUR_API_KEY_HERE")
+genai.configure(api_key=gen_ai_api_key)
 
 # Initialize the Gemini Pro model
 model = genai.GenerativeModel('gemini-pro')
@@ -79,30 +104,6 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
-
-# Function to write summary word count to MongoDB
-def write_to_mongodb(summary_word_count):
-    # MongoDB Atlas credentials
-    username = "akhileshpawar820"
-    password = "Akhi8011*"
-    cluster_name = "cluster"
-    database_name = "cluster"
-
-    # Connect to MongoDB Atlas
-    client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
-    db = client[database_name]
-
-    # Select or create a collection to store the summaries
-    collection = db["summaries"]
-
-    # Prepare data to insert into the collection
-    summary_data = {
-        "summary_word_count": summary_word_count,
-        "timestamp": datetime.now()
-    }
-
-    # Insert data into the collection
-    collection.insert_one(summary_data)
 
 # Streamlit App
 def main():
@@ -178,8 +179,15 @@ def main():
         summary_word_count = len(summary.split())
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
-        # Write summary word count to MongoDB
-        write_to_mongodb(summary_word_count)
+        # Write to MongoDB
+        try:
+            collection = db["summaries"]
+            data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count}
+            collection.insert_one(data)
+            st.success("Summary data written to MongoDB successfully!")
+        except pymongo.errors.PyMongoError as e:
+            st.error("Failed to write summary data to MongoDB.")
+            st.error(str(e))
 
 if __name__ == "__main__":
     main()
