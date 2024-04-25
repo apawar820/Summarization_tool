@@ -1,5 +1,16 @@
 import streamlit as st
 import pymongo
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from google.generativeai import generativeai
+from PyPDF2 import PdfReader
+from langdetect import detect
+from rake_nltk import Rake
+import spacy
+import pandas as pd
+import re
+from docx import Document
 
 # Connect to MongoDB Atlas
 def connect_to_mongodb():
@@ -9,7 +20,6 @@ def connect_to_mongodb():
         password = "Akhi8011*"
         cluster_name = "cluster"
         database_name = "cluster"
-
         client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
         db = client[database_name]
         return db
@@ -17,38 +27,163 @@ def connect_to_mongodb():
         st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
         st.stop()
 
-# Function to insert data into MongoDB
-def insert_data(data):
-    db = connect_to_mongodb()
-    if db is not None:  # Compare with None directly
-        example_collection = db['example_collection']
-        example_collection.insert_one(data)
-        st.success("Data inserted successfully into MongoDB Atlas.")
+# Initialize NLTK resources
+nltk.download('punkt')
+nltk.download('stopwords')
 
-# Main function to run the Streamlit app
+# Configure the API key
+generativeai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
+
+# Initialize the Gemini Pro model
+model = generativeai.GenerativeModel('gemini-pro')
+
+# Load English language model for NER
+nlp = spacy.load("en_core_web_sm")
+
+# Function to generate a summary
+def generate_summary(text):
+    response = model.generate_content(text)
+    return response.text
+
+# Function to extract keywords
+def extract_keywords(text):
+    r = Rake()
+    r.extract_keywords_from_text(text)
+    phrases_with_scores = r.get_ranked_phrases_with_scores()
+    keyword_freq = {}
+    for score, phrase in phrases_with_scores:
+        # Removing leading/trailing whitespaces and converting to lowercase for consistency
+        clean_phrase = phrase.strip().lower()
+        if clean_phrase not in keyword_freq:
+            keyword_freq[clean_phrase] = 1
+        else:
+            keyword_freq[clean_phrase] += 1
+    return keyword_freq
+
+# Function to detect language
+def detect_language(text):
+    return detect(text)
+
+# Function to perform named entity recognition (NER)
+def ner(text):
+    doc = nlp(text)
+    entities = []
+    for ent in doc.ents:
+        entities.append((ent.text, ent.label_))
+    return entities
+
+# Function to read text from PDF
+def read_pdf(uploaded_file):
+    pdf_reader = PdfReader(uploaded_file)
+    text = ""
+    # Read each page of the PDF
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# Function to read text from .doc and .docx files
+def read_docx(uploaded_file):
+    doc = Document(uploaded_file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+# Function to extract URLs from text
+def extract_urls(text):
+    # Regular expression pattern for finding URLs
+    url_pattern = r'https?://\S+'
+    urls = re.findall(url_pattern, text)
+    return urls
+
+# Streamlit App
 def main():
-    # Title of the web app
-    st.title("MongoDB Atlas Streamlit Web App")
+    st.set_page_config(layout="wide")
 
-    # Input form to add data
-    st.header("Add Data to MongoDB Atlas")
-    name = st.text_input("Enter Name")
-    age = st.number_input("Enter Age")
-    email = st.text_input("Enter Email")
+    st.title("PDF, DOCUMENT, TEXT ANALYSIS & SUMMARY GENERATION ")
 
-    # Button to submit data
-    if st.button("Submit"):
-        data = {"name": name, "age": age, "email": email}
-        insert_data(data)
+    # Requirements Sidebar
+    st.sidebar.header("Requirements")
+    uploaded_file = st.sidebar.file_uploader("Upload PDF, DOC, or TXT", type=["pdf", "doc", "docx", "txt"])
+    pasted_text = st.sidebar.text_area("Paste Text")
 
-    # Display data from MongoDB
-    st.header("Data from MongoDB Atlas")
-    db = connect_to_mongodb()
-    if db is not None:  # Compare with None directly
-        example_collection = db['example_collection']
-        data = example_collection.find()
-        for item in data:
-            st.write(item)
+    if uploaded_file is not None:
+        file_extension = uploaded_file.name.split(".")[-1].lower()
+        if file_extension == "pdf":
+            text = read_pdf(uploaded_file)
+        elif file_extension == "doc" or file_extension == "docx":
+            text = read_docx(uploaded_file)
+        elif file_extension == "txt":
+            text = uploaded_file.getvalue().decode("utf-8")
+        else:
+            st.error("Unsupported file format. Please upload a PDF, DOC, or TXT file.")
+            return
+    elif pasted_text != "":
+        text = pasted_text
+        st.write("Pasted Text:")
+        st.write(text)
+    else:
+        st.warning("Please upload a PDF, DOC, or TXT file or paste text.")
+        return  # Exit early if neither file uploaded nor text pasted
+
+    # Word Count
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        word_count = len(text.split())
+        st.markdown(f"**Word Count:** {word_count}")
+    with col2:
+        language = detect_language(text)
+        if language == "en":
+            st.markdown("**Language:** English")
+        else:
+            st.markdown(f"**Language:** {language}")
+
+    # Keyword Extraction
+    keyword_freq = extract_keywords(text)
+    df_keywords = pd.DataFrame({"Keyword": list(keyword_freq.keys()), "Frequency": list(keyword_freq.values())})
+    st.markdown("**Keywords:**")
+    st.write(df_keywords)
+
+    # Named Entity Recognition (NER)
+    entities = ner(text)
+    df_entities = pd.DataFrame(entities, columns=["Entity", "Label"])
+    st.markdown("**Named Entities:**")
+    st.write(df_entities)
+
+    # Extract URLs
+    urls = extract_urls(text)
+    if urls:
+        df_urls = pd.DataFrame({"URLs": urls})
+        st.markdown("**URLs:**")
+        st.write(df_urls)
+    else:
+        st.markdown("**URLs:**")
+        st.write("No URLs found in the text.")
+
+    # Generate Summary
+    if st.button("Summarize"):
+        summary = generate_summary(text)
+        st.markdown("**Summary:**")
+        st.write(summary)
+
+        # Word Count of Summary
+        summary_word_count = len(summary.split())
+        st.markdown(f"**Summary Word Count:** {summary_word_count}")
+
+        # Inserting analysis results into MongoDB
+        db = connect_to_mongodb()
+        if db is not None:
+            # Get user IP address
+            user_ip = st.request.headers.get('X-Forwarded-For', '').split(',')[0]
+
+            # Insert analysis results into the database
+            db.analysis_results.insert_one({
+                "user_id": user_ip,  # You can replace this with a unique user identifier if available
+                "file_name": uploaded_file.name if uploaded_file else "Pasted_Text",
+                "text_size": len(text) if uploaded_file is None else 0,
+                "summary": summary
+            })
+            st.success("Analysis results inserted into MongoDB Atlas.")
 
 if __name__ == "__main__":
     main()
