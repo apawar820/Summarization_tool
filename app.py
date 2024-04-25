@@ -78,19 +78,23 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
+from pymongo.errors import ServerSelectionTimeoutError
 
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
-    db = client["your_database_name"]
-    collection = db["your_collection_name"]
-    data = {
-        "ip_address": ip_address,
-        "unique_id": unique_id,
-        "filename": filename,
-        "text_size": text_size,
-        "summary": summary
-    }
-    collection.insert_one(data)
+    try:
+        db = client["your_database_name"]
+        collection = db["your_collection_name"]
+        data = {
+            "ip_address": ip_address,
+            "unique_id": unique_id,
+            "filename": filename,
+            "text_size": text_size,
+            "summary": summary
+        }
+        collection.insert_one(data)
+    except ServerSelectionTimeoutError as e:
+        st.error("Failed to connect to MongoDB Atlas. Please check your network connection and MongoDB URI.")
 
 # Streamlit App
 def main():
