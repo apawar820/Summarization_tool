@@ -15,16 +15,22 @@ import re
 from docx import Document
 
 # Initialize MongoDB client
-username = "akhileshpawar820"
-password = "Akhi8011*"
-cluster_name = "cluster"
-database_name = "cluster"  # Replace with your actual database name
+def connect_to_mongodb():
+    try:
+        # Replace these values with your MongoDB Atlas connection string
+        username = "akhileshpawar820"
+        password = "Akhi8011*"
+        cluster_name = "cluster"
+        database_name = "cluster"
 
-# Construct MongoDB URI
-uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+        client = pymongo.MongoClient(f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster")
+        db = client[database_name]
+        return db
+    except pymongo.errors.OperationFailure as e:
+        st.error("Failed to connect to MongoDB Atlas. Please check your connection settings.")
+        st.stop()
 
-# Initialize MongoDB client
-client = pymongo.MongoClient(uri)
+db = connect_to_mongodb()
 
 # Configure the API key
 genai.configure(api_key=os.getenv('GEN_AI_API_KEY') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw")
@@ -90,13 +96,6 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
-
-# Function to write data to MongoDB
-def write_to_mongodb(file_name, summary_word_count):
-    db = client[database_name]
-    collection = db["summaries"]
-    data = {"file_name": file_name, "summary_word_count": summary_word_count}
-    collection.insert_one(data)
 
 # Streamlit App
 def main():
@@ -173,7 +172,14 @@ def main():
         st.markdown(f"**Summary Word Count:** {summary_word_count}")
 
         # Write to MongoDB
-        write_to_mongodb(uploaded_file.name, summary_word_count)
+        try:
+            collection = db["summaries"]
+            data = {"file_name": uploaded_file.name, "summary_word_count": summary_word_count}
+            collection.insert_one(data)
+            st.success("Summary data written to MongoDB successfully!")
+        except Exception as e:
+            st.error("Failed to write summary data to MongoDB.")
+            st.error(str(e))
 
 if __name__ == "__main__":
     main()
