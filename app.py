@@ -1,11 +1,6 @@
-# Import necessary libraries
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-
 import streamlit as st
-import google.generativeai as genai
 import os
+from pymongo import MongoClient
 from PyPDF2 import PdfReader
 from langdetect import detect
 from rake_nltk import Rake
@@ -13,11 +8,16 @@ import spacy
 import pandas as pd
 import re
 from docx import Document
-from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 
 # Connect to MongoDB Atlas
 uri = "mongodb+srv://akhileshpawar820:<Akhi8011*>@cluster.2neubhc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster"
-client = MongoClient(uri)
+try:
+    client = MongoClient(uri)
+    db = client["Cluster"]
+    collection = db["summary"]
+except ServerSelectionTimeoutError as e:
+    st.error("Failed to connect to MongoDB Atlas. Please check your network connection and MongoDB URI.")
 
 # Function to generate a summary
 def generate_summary(text):
@@ -78,13 +78,10 @@ def extract_urls(text):
     url_pattern = r'https?://\S+'
     urls = re.findall(url_pattern, text)
     return urls
-from pymongo.errors import ServerSelectionTimeoutError
 
 # Function to store data in MongoDB
 def store_data(ip_address, unique_id, filename, text_size, summary):
     try:
-        db = client["Cluster"]
-        collection = db["summary"]
         data = {
             "ip_address": ip_address,
             "unique_id": unique_id,
@@ -94,7 +91,7 @@ def store_data(ip_address, unique_id, filename, text_size, summary):
         }
         collection.insert_one(data)
     except ServerSelectionTimeoutError as e:
-        st.error("Failed to connect to MongoDB Atlas. Please check your network connection and MongoDB URI.")
+        st.error("Failed to store data in MongoDB Atlas.")
 
 # Streamlit App
 def main():
