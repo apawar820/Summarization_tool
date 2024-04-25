@@ -1,8 +1,3 @@
-# Import NLTK and download necessary resources
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-
 import streamlit as st
 import os
 import pymongo
@@ -32,86 +27,15 @@ def connect_to_mongodb():
         st.stop()
 
 # Function to insert data into MongoDB
-def insert_data(name, file_name, file_type, file_size, summary):
+def insert_data(data):
     db = connect_to_mongodb()
     if db is not None:
-        analysis_collection = db['analysis']
-        data = {
-            "name": name,
-            "file_name": file_name,
-            "file_type": file_type,
-            "file_size": file_size,
-            "summary": summary
-        }
-        analysis_collection.insert_one(data)
+        example_collection = db['example_collection']
+        example_collection.insert_one(data)
         st.success("Data inserted successfully into MongoDB Atlas.")
 
-# Initialize the Gemini Pro model
-model = genai.GenerativeModel('gemini-pro')
-
-# Load English language model for NER
-nlp = spacy.load("en_core_web_sm")
-
-# Function to generate a summary
-def generate_summary(text):
-    response = model.generate_content(text)
-    return response.text
-
-# Function to extract keywords
-def extract_keywords(text):
-    r = Rake()
-    r.extract_keywords_from_text(text)
-    phrases_with_scores = r.get_ranked_phrases_with_scores()
-    keyword_freq = {}
-    for score, phrase in phrases_with_scores:
-        # Removing leading/trailing whitespaces and converting to lowercase for consistency
-        clean_phrase = phrase.strip().lower()
-        if clean_phrase not in keyword_freq:
-            keyword_freq[clean_phrase] = 1
-        else:
-            keyword_freq[clean_phrase] += 1
-    return keyword_freq
-
-# Function to detect language
-def detect_language(text):
-    return detect(text)
-
-# Function to perform named entity recognition (NER)
-def ner(text):
-    doc = nlp(text)
-    entities = []
-    for ent in doc.ents:
-        entities.append((ent.text, ent.label_))
-    return entities
-
-# Function to read text from PDF
-def read_pdf(uploaded_file):
-    pdf_reader = PdfReader(uploaded_file)
-    text = ""
-    # Read each page of the PDF
-    for page in pdf_reader.pages:
-        text += page.extract_text()
-    return text
-
-# Function to read text from .doc and .docx files
-def read_docx(uploaded_file):
-    doc = Document(uploaded_file)
-    text = ""
-    for paragraph in doc.paragraphs:
-        text += paragraph.text + "\n"
-    return text
-
-# Function to extract URLs from text
-def extract_urls(text):
-    # Regular expression pattern for finding URLs
-    url_pattern = r'https?://\S+'
-    urls = re.findall(url_pattern, text)
-    return urls
-
-# Streamlit App
+# Initialize Streamlit app
 def main():
-    st.set_page_config(layout="wide")
-
     st.title("PDF, DOCUMENT, TEXT ANALYSIS & SUMMARY GENERATION ")
 
     # Requirements Sidebar
@@ -140,38 +64,29 @@ def main():
         return  # Exit early if neither file uploaded nor text pasted
 
     # Word Count
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        word_count = len(text.split())
-        st.markdown(f"**Word Count:** {word_count}")
-    with col2:
-        language = detect_language(text)
-        if language == "en":
-            st.markdown("**Language:** English")
-        else:
-            st.markdown(f"**Language:** {language}")
+    word_count = len(text.split())
+    st.markdown(f"**Word Count:** {word_count}")
+
+    # Language Detection
+    language = detect(text)
+    if language == "en":
+        st.markdown("**Language:** English")
+    else:
+        st.markdown(f"**Language:** {language}")
 
     # Keyword Extraction
-    keyword_freq = extract_keywords(text)
-    df_keywords = pd.DataFrame({"Keyword": list(keyword_freq.keys()), "Frequency": list(keyword_freq.values())})
+    r = Rake()
+    r.extract_keywords_from_text(text)
+    keywords = r.get_ranked_phrases()
     st.markdown("**Keywords:**")
-    st.write(df_keywords)
+    st.write(keywords)
 
     # Named Entity Recognition (NER)
-    entities = ner(text)
-    df_entities = pd.DataFrame(entities, columns=["Entity", "Label"])
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text)
+    entities = [(ent.text, ent.label_) for ent in doc.ents]
     st.markdown("**Named Entities:**")
-    st.write(df_entities)
-
-    # Extract URLs
-    urls = extract_urls(text)
-    if urls:
-        df_urls = pd.DataFrame({"URLs": urls})
-        st.markdown("**URLs:**")
-        st.write(df_urls)
-    else:
-        st.markdown("**URLs:**")
-        st.write("No URLs found in the text.")
+    st.write(entities)
 
     # Generate Summary
     if st.button("Summarize"):
@@ -179,12 +94,35 @@ def main():
         st.markdown("**Summary:**")
         st.write(summary)
 
-        # Word Count of Summary
-        summary_word_count = len(summary.split())
-        st.markdown(f"**Summary Word Count:** {summary_word_count}")
-
         # Insert analysis data into MongoDB
-        insert_data(name, uploaded_file.name if uploaded_file else "Pasted Text", file_extension if uploaded_file else "Pasted Text", word_count if uploaded_file else len(pasted_text.split()), summary)
+        insert_data({
+            "name": name,
+            "file_name": uploaded_file.name if uploaded_file else "Pasted Text",
+            "file_type": file_extension if uploaded_file else "Pasted Text",
+            "word_count": word_count,
+            "summary": summary
+        })
+
+# Function to generate a summary
+def generate_summary(text):
+    # Dummy summary generation for demonstration purposes
+    return "This is a summary of the input text."
+
+# Function to read text from PDF
+def read_pdf(uploaded_file):
+    pdf_reader = PdfReader(uploaded_file)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
+
+# Function to read text from .doc and .docx files
+def read_docx(uploaded_file):
+    doc = Document(uploaded_file)
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
 
 if __name__ == "__main__":
     main()
