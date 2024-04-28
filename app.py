@@ -119,6 +119,9 @@ def generate_unique_id(name):
     # Concatenate user's name with a unique UUID
     unique_id = f"{name}_{uuid.uuid4().hex}"
     return unique_id
+# Function to read text from pasted text
+def read_pasted_text(text):
+    return text
 
 # Streamlit App
 def main():
@@ -144,7 +147,7 @@ def main():
             st.error("Unsupported file format. Please upload a PDF, DOC, or TXT file.")
             return
     elif pasted_text != "":
-        text = pasted_text
+        text = read_pasted_text(pasted_text)  # Read text from pasted text
         st.write("Pasted Text:")
         st.write(text)
     else:
@@ -198,10 +201,16 @@ def main():
         # Generate Unique ID
         unique_id = generate_unique_id(user_name)
 
+        # Determine file name for MongoDB insertion
+        if uploaded_file is not None:
+            file_name = uploaded_file.name
+        else:
+            file_name = "pasted_text"
+
         # Write to MongoDB
         try:
             collection = db["summaries"]
-            data = {"unique_id": unique_id, "user_name": user_name, "file_name": uploaded_file.name, "summary": summary, "summary_word_count": summary_word_count}
+            data = {"unique_id": unique_id, "user_name": user_name, "file_name": file_name, "summary": summary, "summary_word_count": summary_word_count}
             collection.insert_one(data)
             st.success("Summary data written to MongoDB successfully!")
         except pymongo.errors.PyMongoError as e:
