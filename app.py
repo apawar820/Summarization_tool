@@ -15,14 +15,13 @@ import uuid  # Import UUID module
 def connect_to_mongodb():
     try:
         # Replace these values with your MongoDB Atlas connection details
-        username = "akhileshpawar820"
-        password = "Akhi8011*"
-        cluster_name = "cluster"
-        database_name = "cluster"
+        username = ""
+        password = "*"
+        cluster_name = ""
+        database_name = ""
 
         # Construct the MongoDB URI
-        uri = f"mongodb+srv://akhileshpawar820:Akhi8011*@cluster.1dwu2os.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
-
+        uri = 
         # Attempt to connect to MongoDB
         client = pymongo.MongoClient(uri)
         db = client[database_name]
@@ -41,7 +40,7 @@ def connect_to_mongodb():
 db = connect_to_mongodb()
 
 # Check if GEN AI API Key is set
-gen_ai_api_key = os.getenv('AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw') or "AIzaSyAlFMg7vWhcZLGqtYThySxY19r0hOnxLAw"
+gen_ai_api_key = os.getenv('') or ""
 if gen_ai_api_key == "YOUR_API_KEY_HERE":
     st.error("Please set your GEN AI API Key.")
     st.stop()
